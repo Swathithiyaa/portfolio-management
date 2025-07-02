@@ -4,17 +4,18 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import RemoveIcon from '@mui/icons-material/Remove';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { getSentimentDisplay } from '../utils/sentimentUtils';
 
 const NewsFeed = ({ news }) => {
   const getSentimentColor = (sentiment) => {
-    if (sentiment > 0.1) return 'success';
-    if (sentiment < -0.1) return 'error';
+    if (sentiment > 15) return 'success';
+    if (sentiment < -15) return 'error';
     return 'default';
   };
 
   const getSentimentIcon = (sentiment) => {
-    if (sentiment > 0.1) return <TrendingUpIcon />;
-    if (sentiment < -0.1) return <TrendingDownIcon />;
+    if (sentiment > 15) return <TrendingUpIcon />;
+    if (sentiment < -15) return <TrendingDownIcon />;
     return <RemoveIcon />;
   };
 
@@ -39,41 +40,27 @@ const NewsFeed = ({ news }) => {
       {news.map((item) => (
         <Card key={item.id} sx={{ mb: 2 }}>
           <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-              <Typography variant="h6" component="div" sx={{ flex: 1 }}>
-                {item.headline}
-              </Typography>
-              <Chip
-                icon={getSentimentIcon(item.sentiment)}
-                label={`${(item.sentiment * 100).toFixed(1)}%`}
-                color={getSentimentColor(item.sentiment)}
-                size="small"
-                sx={{ ml: 1 }}
-              />
-            </Box>
-            
-            {item.content && (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {item.content}
-              </Typography>
-            )}
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <AccessTimeIcon sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
+            <Grid container alignItems="center" spacing={2}>
+              <Grid item xs={12} sm={8}>
+                <Typography variant="h6">{item.headline}</Typography>
+                <Typography variant="body2" color="text.secondary">{item.content}</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {formatDate(item.published_at)}
                 </Typography>
-              </Box>
-              
-              {item.stock && (
+              </Grid>
+              <Grid item xs={12} sm={4}>
                 <Chip
-                  label={item.stock.symbol}
+                  label={item.sentiment_label || 'Neutral'}
+                  color={item.sentiment_label === 'Positive' ? 'success' : item.sentiment_label === 'Negative' ? 'error' : 'default'}
                   size="small"
-                  variant="outlined"
+                  sx={{ mr: 1 }}
                 />
-              )}
-            </Box>
+                <Chip
+                  label={item.impact_label || 'Small'}
+                  size="small"
+                />
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
       ))}

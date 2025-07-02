@@ -87,7 +87,8 @@ def update_all_stocks(db: Session = Depends(get_db)):
                 live_data = stock_data_module.stock_service.get_stock_price(str(stock.symbol))
                 if live_data:
                     stock.price = live_data['price']
-                    stock.last_updated = datetime.datetime.utcnow()
+                    if hasattr(stock, 'last_updated'):
+                        stock.last_updated = datetime.datetime.utcnow()
                     updated_count += 1
             except Exception as e:
                 logger.warning(f"Could not update stock {stock.symbol}: {e}")
@@ -143,25 +144,25 @@ def add_stock_with_portfolio(request: schemas.AddStockRequest, background_tasks:
         
         # Add to portfolio
         portfolio_data = schemas.PortfolioCreate(
-            stock_id=int(created_stock.id),
+            stock_id=int(getattr(created_stock, 'id')),
             quantity=request.quantity
         )
         created_portfolio = crud.create_portfolio(db=db, portfolio=portfolio_data)
 
         # Synchronously fetch and store news for the new stock
         try:
-            news_items = news_scraper.news_scraper.fetch_news_for_stock(str(getattr(created_stock, 'symbol')), int(getattr(created_stock, 'id')))
+            news_items = news_scraper.fetch_news_for_stock(str(getattr(created_stock, 'symbol')), int(getattr(created_stock, 'id')))
             if news_items:
-                news_scraper.news_scraper.store_news(db, int(getattr(created_stock, 'id')), news_items)
+                news_scraper.store_news(db, int(getattr(created_stock, 'id')), news_items)
         except Exception as e:
             logger.warning(f"Error scraping news for new stock {request.symbol} (sync): {e}")
         
         # Trigger news scraping for the new stock in background (redundancy)
         def scrape_news_for_new_stock():
             try:
-                news_items = news_scraper.news_scraper.fetch_news_for_stock(str(getattr(created_stock, 'symbol')), int(getattr(created_stock, 'id')))
+                news_items = news_scraper.fetch_news_for_stock(str(getattr(created_stock, 'symbol')), int(getattr(created_stock, 'id')))
                 if news_items:
-                    news_scraper.news_scraper.store_news(db, int(getattr(created_stock, 'id')), news_items)
+                    news_scraper.store_news(db, int(getattr(created_stock, 'id')), news_items)
             except Exception as e:
                 logger.warning(f"Error scraping news for new stock {request.symbol}: {e}")
         
@@ -199,9 +200,9 @@ def scrape_news(background_tasks: BackgroundTasks, db: Session = Depends(get_db)
             for stock in stock_data:
                 try:
                     print(f"Scraping news for {stock['symbol']} (id={stock['id']})...")
-                    news_items = news_scraper.news_scraper.fetch_news_for_stock(str(stock['symbol']), stock['id'])
+                    news_items = news_scraper.fetch_news_for_stock(str(stock['symbol']), stock['id'])
                     if news_items:
-                        news_scraper.news_scraper.store_news(db, int(stock['id']), news_items)
+                        news_scraper.store_news(db, int(stock['id']), news_items)
                     else:
                         print(f"No news found for {stock['symbol']}")
                     time.sleep(1)  # Rate limiting
@@ -227,12 +228,14 @@ def get_market_summary(db: Session = Depends(get_db)):
         
         for stock in stocks:
             try:
-                live_data = stock_data_module.stock_service.get_stock_price(str(stock.symbol))
+                live_data = stock_data_module.stock_service.get_stock_price(str(getattr(stock, 'symbol')))
                 if live_data:
-                    portfolio_item = next((p for p in portfolio if p.stock_id == stock.id), None)
+                    stock_id_val = int(getattr(stock, 'id'))
+                    portfolio_item = next((p for p in portfolio if (hasattr(p, 'stock_id') and p.stock_id == stock_id_val) or (isinstance(p, dict) and p.get('stock_id') == stock_id_val)), None)
                     if portfolio_item is not None:
-                        total_value += live_data['price'] * portfolio_item.quantity
-                        total_change += live_data['change'] * portfolio_item.quantity
+                        quantity = portfolio_item.quantity if hasattr(portfolio_item, 'quantity') else portfolio_item.get('quantity', 0)
+                        total_value += live_data['price'] * quantity
+                        total_change += live_data['change'] * quantity
             except Exception as e:
                 logger.warning(f"Could not get live data for {stock.symbol}: {e}")
                 continue

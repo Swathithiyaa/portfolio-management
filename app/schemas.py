@@ -23,6 +23,9 @@ class StockBase(BaseModel):
     price: float
     last_updated: Optional[datetime] = None
     sentiment: Optional[float] = 0.0
+    previous_close: Optional[float] = None
+    sentiment_label: Optional[str] = None
+    impact_label: Optional[str] = None
 
 class StockCreate(StockBase):
     pass

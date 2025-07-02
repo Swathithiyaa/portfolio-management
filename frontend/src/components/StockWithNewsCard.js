@@ -6,17 +6,18 @@ import RemoveIcon from '@mui/icons-material/Remove';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
+import { getSentimentDisplay } from '../utils/sentimentUtils';
 
 const StockWithNewsCard = ({ stock, relatedNews = [] }) => {
   const getSentimentColor = (sentiment) => {
-    if (sentiment > 0.1) return 'success';
-    if (sentiment < -0.1) return 'error';
+    if (sentiment > 15) return 'success';
+    if (sentiment < -15) return 'error';
     return 'default';
   };
 
   const getSentimentIcon = (sentiment) => {
-    if (sentiment > 0.1) return <TrendingUpIcon />;
-    if (sentiment < -0.1) return <TrendingDownIcon />;
+    if (sentiment > 15) return <TrendingUpIcon />;
+    if (sentiment < -15) return <TrendingDownIcon />;
     return <RemoveIcon />;
   };
 
@@ -41,7 +42,7 @@ const StockWithNewsCard = ({ stock, relatedNews = [] }) => {
           </Box>
           <Chip
             icon={getSentimentIcon(stock.sentiment)}
-            label={`${(stock.sentiment * 100).toFixed(1)}%`}
+            label={getSentimentDisplay(stock.sentiment).label}
             color={getSentimentColor(stock.sentiment)}
             size="small"
           />
@@ -105,10 +106,10 @@ const StockWithNewsCard = ({ stock, relatedNews = [] }) => {
                               </Box>
                               <Chip
                                 icon={getSentimentIcon(news.sentiment)}
-                                label={`${(news.sentiment * 100).toFixed(1)}%`}
+                                label={getSentimentDisplay(news.sentiment).label}
                                 color={getSentimentColor(news.sentiment)}
                                 size="small"
-                                sx={{ height: 20 }}
+                                sx={{ mb: 1 }}
                               />
                             </Box>
                           </Box>

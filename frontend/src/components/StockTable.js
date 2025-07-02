@@ -25,20 +25,27 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
+import { getSentimentDisplay, getSentimentIcon as getSentimentIconUtil, formatSentimentScore, getImpactScoreAndQuantum } from '../utils/sentimentUtils';
 
 const StockTable = ({ stocks, portfolio, news = [], showNewsColumn = true }) => {
   const [expandedRows, setExpandedRows] = useState({});
 
   const getSentimentColor = (sentiment) => {
-    if (sentiment > 0.1) return 'success';
-    if (sentiment < -0.1) return 'error';
+    const display = getSentimentDisplay(sentiment);
+    if (display.label === 'Positive') return 'success';
+    if (display.label === 'Negative') return 'error';
     return 'default';
   };
 
   const getSentimentIcon = (sentiment) => {
-    if (sentiment > 0.1) return <TrendingUpIcon />;
-    if (sentiment < -0.1) return <TrendingDownIcon />;
+    if (sentiment >= 15) return <TrendingUpIcon />;
+    if (sentiment <= -15) return <TrendingDownIcon />;
     return <RemoveIcon />;
+  };
+
+  const formatSentimentLabel = (sentiment) => {
+    const display = getSentimentDisplay(sentiment);
+    return `${display.label} (${display.percentage}%)`;
   };
 
   const formatDate = (dateString) => {
@@ -66,6 +73,28 @@ const StockTable = ({ stocks, portfolio, news = [], showNewsColumn = true }) => 
     return (stock.current_price || stock.price || 0) * quantity;
   };
 
+  // Calculate Day's Gain and Day's Gain %
+  const calculateDaysGain = (stock) => {
+    const quantity = getPortfolioQuantity(stock.id);
+    const price = stock.current_price || stock.price || 0;
+    const prevClose = stock.previous_close || 0;
+    return ((price - prevClose) * quantity);
+  };
+
+  const calculateDaysGainPercent = (stock) => {
+    const price = stock.current_price || stock.price || 0;
+    const prevClose = stock.previous_close || 0;
+    if (prevClose === 0) return 0;
+    return ((price - prevClose) / prevClose) * 100;
+  };
+
+  // Helper to get sentiment label and color based on day's gain
+  const getSentimentFromDaysGain = (daysGain) => {
+    if (daysGain > 0) return { label: 'Positive', color: 'success' };
+    if (daysGain < 0) return { label: 'Negative', color: 'error' };
+    return { label: 'Neutral', color: 'default' };
+  };
+
   if (!stocks || stocks.length === 0) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -89,7 +118,10 @@ const StockTable = ({ stocks, portfolio, news = [], showNewsColumn = true }) => 
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Price</TableCell>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Quantity</TableCell>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Total Value</TableCell>
+            <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Day's Gain</TableCell>
+            <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="right">Day's Gain %</TableCell>
             <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Sentiment</TableCell>
+            <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Impact</TableCell>
             {showNewsColumn && (
               <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">News</TableCell>
             )}
@@ -99,8 +131,12 @@ const StockTable = ({ stocks, portfolio, news = [], showNewsColumn = true }) => 
           {stocks.map((stock) => {
             const quantity = getPortfolioQuantity(stock.id);
             const totalValue = calculateTotalValue(stock);
+            const daysGain = calculateDaysGain(stock);
+            const daysGainPercent = calculateDaysGainPercent(stock);
             const stockNews = getStockNews(stock.id);
             const isExpanded = expandedRows[stock.id];
+            const impact = getImpactScoreAndQuantum(stock.sentiment);
+            const sentimentDisplay = getSentimentFromDaysGain(daysGain);
 
             return (
               <React.Fragment key={stock.id}>
@@ -130,11 +166,26 @@ const StockTable = ({ stocks, portfolio, news = [], showNewsColumn = true }) => 
                       ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Typography>
                   </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body1" sx={{ fontWeight: 'medium', color: daysGain >= 0 ? 'success.main' : 'error.main' }}>
+                      {daysGain >= 0 ? '+' : ''}{daysGain.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="body1" sx={{ fontWeight: 'medium', color: daysGainPercent >= 0 ? 'success.main' : 'error.main' }}>
+                      {daysGainPercent >= 0 ? '+' : ''}{daysGainPercent.toFixed(2)}%
+                    </Typography>
+                  </TableCell>
                   <TableCell align="center">
                     <Chip
-                      icon={getSentimentIcon(stock.sentiment)}
-                      label={`${(stock.sentiment * 100).toFixed(1)}%`}
-                      color={getSentimentColor(stock.sentiment)}
+                      label={stock.sentiment_label || 'Neutral'}
+                      color={stock.sentiment_label === 'Positive' ? 'success' : stock.sentiment_label === 'Negative' ? 'error' : 'default'}
+                      size="small"
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      label={stock.impact_label || 'Small'}
                       size="small"
                     />
                   </TableCell>
@@ -203,7 +254,7 @@ const StockTable = ({ stocks, portfolio, news = [], showNewsColumn = true }) => 
                                           </Box>
                                           <Chip
                                             icon={getSentimentIcon(newsItem.sentiment)}
-                                            label={`${(newsItem.sentiment * 100).toFixed(1)}%`}
+                                            label={formatSentimentScore(newsItem.sentiment)}
                                             color={getSentimentColor(newsItem.sentiment)}
                                             size="small"
                                             sx={{ height: 20 }}

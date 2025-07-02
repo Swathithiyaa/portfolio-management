@@ -29,8 +29,8 @@ const PortfolioPage = () => {
 
   // Helper function to get sentiment state
   const getSentimentState = (sentiment) => {
-    if (sentiment > 0.1) return 'positive';
-    if (sentiment < -0.1) return 'negative';
+    if (sentiment > 15) return 'positive';
+    if (sentiment < -15) return 'negative';
     return 'neutral';
   };
 
@@ -91,13 +91,19 @@ const PortfolioPage = () => {
         console.log('DEBUG: First news item:', newsResponse.data[0]);
       }
       
-      const newStocks = stocksResponse.data;
-      setStocks(newStocks);
-      setPortfolio(portfolioResponse.data);
+      const allStocks = stocksResponse.data;
+      const portfolioStocks = portfolioResponse.data;
+      
+      // Filter stocks to show only those being tracked in portfolio
+      const trackedStockIds = portfolioStocks.map(item => item.stock_id);
+      const trackedStocks = allStocks.filter(stock => trackedStockIds.includes(stock.id));
+      
+      setStocks(trackedStocks);
+      setPortfolio(portfolioStocks);
       setNews(newsResponse.data);
       
       // Check for sentiment changes
-      checkSentimentChanges(newStocks);
+      checkSentimentChanges(trackedStocks);
     } catch (error) {
       console.error('Error fetching portfolio data:', error);
     } finally {

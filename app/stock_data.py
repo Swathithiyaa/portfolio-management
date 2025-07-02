@@ -31,6 +31,7 @@ class AlphaVantageService:
             if 'Global Quote' in data and data['Global Quote']:
                 quote = data['Global Quote']
                 price = float(quote.get('05. price', 0))
+                previous_close = float(quote.get('08. previous close', price))
                 change = float(quote.get('09. change', 0))
                 change_percent = quote.get('10. change percent', '0%')
                 volume = int(quote.get('06. volume', 0))
@@ -38,6 +39,7 @@ class AlphaVantageService:
                 return {
                     'symbol': quote.get('01. symbol'),
                     'price': price,
+                    'previous_close': previous_close,
                     'change': change,
                     'change_percent': change_percent,
                     'volume': volume,
@@ -126,6 +128,7 @@ class YahooFinanceService:
                 return {
                     'symbol': symbol,
                     'price': price,
+                    'previous_close': prev_close,
                     'change': change,
                     'change_percent': f"{change_percent:.2f}%",
                     'volume': int(meta.get('regularMarketVolume', 0)),
@@ -150,12 +153,13 @@ class MockStockService:
             change_percent = random.uniform(-2, 2)
             change_amount = base_price * (change_percent / 100)
             new_price = base_price + change_amount
-            
+            previous_close = base_price
             self.base_prices[symbol] = new_price
             
             return {
                 'symbol': symbol,
                 'price': round(new_price, 2),
+                'previous_close': round(previous_close, 2),
                 'change': round(change_amount, 2),
                 'change_percent': f"{change_percent:.2f}%",
                 'volume': random.randint(1000000, 10000000),

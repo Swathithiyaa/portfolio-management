@@ -4,5 +4,5 @@ sqlalchemy
 pydantic
 requests
 beautifulsoup4
-textblob
+vaderSentiment
 apscheduler 

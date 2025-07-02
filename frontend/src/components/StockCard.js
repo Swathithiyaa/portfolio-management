@@ -8,6 +8,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { stocksAPI } from '../api/api';
+import { getSentimentDisplay } from '../utils/sentimentUtils';
 
 const StockCard = ({ stock, onUpdate, relatedNews = [] }) => {
   const [liveData, setLiveData] = useState(null);
@@ -35,14 +36,14 @@ const StockCard = ({ stock, onUpdate, relatedNews = [] }) => {
   }, [stock.symbol]);
 
   const getSentimentColor = (sentiment) => {
-    if (sentiment > 0.1) return 'success';
-    if (sentiment < -0.1) return 'error';
+    if (sentiment > 15) return 'success';
+    if (sentiment < -15) return 'error';
     return 'default';
   };
 
   const getSentimentIcon = (sentiment) => {
-    if (sentiment > 0.1) return <TrendingUpIcon />;
-    if (sentiment < -0.1) return <TrendingDownIcon />;
+    if (sentiment > 15) return <TrendingUpIcon />;
+    if (sentiment < -15) return <TrendingDownIcon />;
     return <RemoveIcon />;
   };
 
@@ -181,10 +182,10 @@ const StockCard = ({ stock, onUpdate, relatedNews = [] }) => {
                             </Typography>
                             <Chip
                               icon={getSentimentIcon(news.sentiment)}
-                              label={`${(news.sentiment * 100).toFixed(1)}%`}
+                              label={getSentimentDisplay(news.sentiment).label}
                               color={getSentimentColor(news.sentiment)}
                               size="small"
-                              sx={{ ml: 1, height: 20 }}
+                              sx={{ mb: 1 }}
                             />
                           </Box>
                         }
