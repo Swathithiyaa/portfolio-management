@@ -11,6 +11,9 @@ class Stock(Base):
     price = Column(Float)
     last_updated = Column(DateTime, default=datetime.datetime.utcnow)
     sentiment = Column(Float, default=0.0)
+    sentiment_label = Column(String, nullable=True)
+    impact_label = Column(String, nullable=True)
+    previous_close = Column(Float, nullable=True)
     news = relationship("News", back_populates="stock")
 
 class News(Base):
@@ -19,6 +22,8 @@ class News(Base):
     headline = Column(String)
     content = Column(String)
     sentiment = Column(Float)
+    sentiment_label = Column(String, nullable=True)
+    impact_label = Column(String, nullable=True)
     stock_id = Column(Integer, ForeignKey("stocks.id"))
     published_at = Column(DateTime, default=datetime.datetime.utcnow)
     stock = relationship("Stock", back_populates="news")
